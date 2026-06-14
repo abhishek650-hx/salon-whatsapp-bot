@@ -1,0 +1,10 @@
+{
+    "salon_name": "Glow Salon",
+    "timings": "10 AM - 8 PM",
+    "services": {
+        "haircut": 300,
+        "beard": 150,
+        "facial": 1000,
+        "hair spa": 1200
+    }
+}

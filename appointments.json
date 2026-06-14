@@ -1,0 +1,18 @@
+{
+    "appointments": [
+        {
+            "name": "Abhishek",
+            "phone": "9876543210",
+            "service": "haircut",
+            "date": "2026-06-15",
+            "time": "15:00",
+            "status": "confirmed"
+        },
+        {
+            "service": "haircut",
+            "date": "2026-06-20",
+            "time": "16:00",
+            "status": "confirmed"
+        }
+    ]
+}
