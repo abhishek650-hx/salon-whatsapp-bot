@@ -1,7 +1,6 @@
 from fastapi import FastAPI, Request
 from pydantic import BaseModel
 from dotenv import load_dotenv
-from user_state import user_states
 from datetime import date
 import os
 import json
@@ -34,13 +33,47 @@ class ChatRequest(BaseModel):
 
 
 # =====================================
-# WHATSAPP WEBHOOK VERIFICATION
+# HOME
+# =====================================
+
+@app.get("/")
+def home():
+    return {"message": "Salon Assistant Running"}
+
+
+# =====================================
+# WHATSAPP VERIFICATION
+# =====================================
+
+@app.get("/webhook")
+async def verify_webhook(request: Request):
+
+    mode = request.query_params.get("hub.mode")
+    token = request.query_params.get("hub.verify_token")
+    challenge = request.query_params.get("hub.challenge")
+
+    print("VERIFY REQUEST")
+    print("MODE:", mode)
+    print("TOKEN:", token)
+    print("CHALLENGE:", challenge)
+
+    if mode == "subscribe" and token == VERIFY_TOKEN:
+        return int(challenge)
+
+    return {"error": "Verification failed"}
+
+
+# =====================================
+# RECEIVE WHATSAPP MESSAGE
 # =====================================
 
 @app.post("/webhook")
 async def receive_webhook(request: Request):
 
     data = await request.json()
+
+    print("\n========== WEBHOOK ==========")
+    print(json.dumps(data, indent=2))
 
     try:
 
@@ -62,25 +95,21 @@ async def receive_webhook(request: Request):
 
         try:
 
-            # TIMINGS
             if "timing" in user_message:
 
                 reply = f"Salon timings are {salon_data['timings']}"
 
-            # SERVICE PRICES
             elif user_message in salon_data["services"]:
 
                 price = salon_data["services"][user_message]
 
                 reply = f"{user_message.title()} costs ₹{price}"
 
-            # SHOW APPOINTMENTS
             elif user_message == "show appointments":
 
                 appointments = db.query(Appointment).all()
 
                 if not appointments:
-
                     reply = "No appointments found"
 
                 else:
@@ -88,7 +117,6 @@ async def receive_webhook(request: Request):
                     reply = "Appointments:\n\n"
 
                     for a in appointments:
-
                         reply += (
                             f"ID: {a.id}\n"
                             f"Name: {a.name}\n"
@@ -97,7 +125,6 @@ async def receive_webhook(request: Request):
                             f"Time: {a.time}\n\n"
                         )
 
-            # SIMPLE BOOKING
             elif user_message.startswith("book"):
 
                 parts = user_message.split()
@@ -164,12 +191,7 @@ async def receive_webhook(request: Request):
                     "9876543210 2026-06-20 15:00"
                 )
 
-            response = send_text_message(
-                phone,
-                reply
-            )
-
-            print(response)
+            send_text_message(phone, reply)
 
             return {"status": "success"}
 
@@ -184,17 +206,10 @@ async def receive_webhook(request: Request):
             "status": "error",
             "message": str(e)
         }
-# =====================================
-# HOME
-# =====================================
-
-@app.get("/")
-def home():
-    return {"message": "Salon Assistant Running"}
 
 
 # =====================================
-# ALL APPOINTMENTS
+# APPOINTMENTS
 # =====================================
 
 @app.get("/appointments")
@@ -217,11 +232,13 @@ def get_appointments():
             "status": a.status
         })
 
+    db.close()
+
     return result
 
 
 # =====================================
-# TODAY APPOINTMENTS
+# TODAY
 # =====================================
 
 @app.get("/today")
@@ -245,242 +262,6 @@ def today_appointments():
             "time": a.time
         })
 
+    db.close()
+
     return result
-
-
-# =====================================
-# REVENUE
-# =====================================
-
-@app.get("/revenue")
-def revenue():
-
-    db = SessionLocal()
-
-    with open("salon_data.json", "r") as file:
-        salon_data = json.load(file)
-
-    appointments = db.query(Appointment).all()
-
-    total = 0
-
-    for appointment in appointments:
-
-        service = appointment.service
-
-        if service in salon_data["services"]:
-            total += salon_data["services"][service]
-
-    return {
-        "total_revenue": total
-    }
-
-
-# =====================================
-# CHATBOT
-# =====================================
-
-@app.post("/chat")
-def chat(request: ChatRequest):
-
-    db = SessionLocal()
-
-    with open("salon_data.json", "r") as file:
-        salon_data = json.load(file)
-
-    message = request.message.lower()
-
-    if message == "show appointments":
-
-        appointments = db.query(Appointment).all()
-
-        if not appointments:
-            return {"reply": "No appointments found"}
-
-        result = []
-
-        for a in appointments:
-            result.append({
-                "id": a.id,
-                "name": a.name,
-                "phone": a.phone,
-                "service": a.service,
-                "date": a.date,
-                "time": a.time,
-                "status": a.status
-            })
-
-        return result
-
-    if message.startswith("find"):
-
-        parts = message.split()
-
-        if len(parts) != 2:
-            return {"reply": "Use format: find abhishek"}
-
-        customer_name = parts[1]
-
-        appointments = db.query(Appointment).filter(
-            Appointment.name == customer_name
-        ).all()
-
-        if not appointments:
-            return {"reply": "Customer not found"}
-
-        result = []
-
-        for a in appointments:
-            result.append({
-                "id": a.id,
-                "service": a.service,
-                "date": a.date,
-                "time": a.time,
-                "status": a.status
-            })
-
-        return result
-
-    if message.startswith("available slots"):
-
-        parts = message.split()
-
-        if len(parts) != 3:
-            return {"reply": "Use format: available slots 2026-06-20"}
-
-        selected_date = parts[2]
-
-        appointments = db.query(Appointment).filter(
-            Appointment.date == selected_date
-        ).all()
-
-        booked_slots = [a.time for a in appointments]
-
-        free_slots = []
-
-        for slot in AVAILABLE_SLOTS:
-            if slot not in booked_slots:
-                free_slots.append(slot)
-
-        return {
-            "date": selected_date,
-            "available_slots": free_slots
-        }
-
-    if message.startswith("cancel"):
-
-        parts = message.split()
-
-        if len(parts) != 2:
-            return {"reply": "Use format: cancel 1"}
-
-        appointment_id = int(parts[1])
-
-        appointment = db.query(Appointment).filter(
-            Appointment.id == appointment_id
-        ).first()
-
-        if not appointment:
-            return {"reply": "Appointment not found"}
-
-        db.delete(appointment)
-        db.commit()
-
-        return {
-            "reply": f"Appointment {appointment_id} cancelled"
-        }
-
-    if message.startswith("reschedule"):
-
-        parts = message.split()
-
-        if len(parts) != 3:
-            return {"reply": "Use format: reschedule 1 17:00"}
-
-        appointment_id = int(parts[1])
-        new_time = parts[2]
-
-        if new_time not in AVAILABLE_SLOTS:
-            return {
-                "reply": f"Available slots are {AVAILABLE_SLOTS}"
-            }
-
-        appointment = db.query(Appointment).filter(
-            Appointment.id == appointment_id
-        ).first()
-
-        if not appointment:
-            return {"reply": "Appointment not found"}
-
-        appointment.time = new_time
-        db.commit()
-
-        return {
-            "reply": f"Appointment {appointment_id} moved to {new_time}"
-        }
-
-    if "timing" in message:
-        return {
-            "reply": f"Salon timings are {salon_data['timings']}"
-        }
-
-    for service, price in salon_data["services"].items():
-
-        if service in message and "book" not in message:
-
-            return {
-                "reply": f"{service.title()} costs ₹{price}"
-            }
-
-    if message.startswith("book"):
-
-        parts = message.split()
-
-        if len(parts) != 6:
-            return {
-                "reply": "Use format: book haircut abhishek 9876543210 2026-06-20 15:00"
-            }
-
-        service = parts[1]
-        name = parts[2]
-        phone = parts[3]
-        booking_date = parts[4]
-        booking_time = parts[5]
-
-        if service not in salon_data["services"]:
-            return {"reply": "Service not found"}
-
-        if booking_time not in AVAILABLE_SLOTS:
-            return {
-                "reply": f"Available slots are {AVAILABLE_SLOTS}"
-            }
-
-        existing = db.query(Appointment).filter(
-            Appointment.date == booking_date,
-            Appointment.time == booking_time
-        ).first()
-
-        if existing:
-            return {
-                "reply": f"Slot {booking_time} is already booked"
-            }
-
-        new_appointment = Appointment(
-            name=name,
-            phone=phone,
-            service=service,
-            date=booking_date,
-            time=booking_time,
-            status="confirmed"
-        )
-
-        db.add(new_appointment)
-        db.commit()
-
-        return {
-            "reply": f"{service.title()} booked successfully for {name} on {booking_date} at {booking_time}"
-        }
-
-    return {
-        "reply": "Sorry, I don't understand."
-    }
