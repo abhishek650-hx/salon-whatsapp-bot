@@ -4,7 +4,6 @@ from dotenv import load_dotenv
 from datetime import date
 import os
 import json
-
 from database import SessionLocal, engine
 from models import Appointment, Base
 from whatsapp import send_text_message
