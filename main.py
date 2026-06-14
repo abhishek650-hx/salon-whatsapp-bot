@@ -107,7 +107,7 @@ async def receive_webhook(request: Request):
 
                 reply = f"{user_message.title()} costs ₹{price}"
 
-            elif user_message == "my appointments":
+           elif user_message == "my appointments":
 
     appointments = db.query(Appointment).filter(
         Appointment.phone == phone
