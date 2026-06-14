@@ -1,7 +1,4 @@
-print("TOKEN EXISTS:", TOKEN is not None)
-print("TOKEN START:", TOKEN[:15] if TOKEN else "NONE")
-print("TOKEN END:", TOKEN[-15:] if TOKEN else "NONE")
-print("PHONE_NUMBER_ID:", PHONE_NUMBER_ID)
+
 import requests
 import os
 from dotenv import load_dotenv
@@ -10,6 +7,10 @@ load_dotenv()
 
 TOKEN = os.getenv("WHATSAPP_TOKEN")
 PHONE_NUMBER_ID = os.getenv("PHONE_NUMBER_ID")
+print("TOKEN EXISTS:", TOKEN is not None)
+print("TOKEN START:", TOKEN[:15] if TOKEN else "NONE")
+print("TOKEN END:", TOKEN[-15:] if TOKEN else "NONE")
+print("PHONE_NUMBER_ID:", PHONE_NUMBER_ID)
 
 
 
