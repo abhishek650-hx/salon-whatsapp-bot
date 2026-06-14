@@ -108,6 +108,91 @@ async def receive_webhook(request: Request):
 
                 reply = f"{user_message.title()} costs ₹{price}"
 
+            elif user_message == "my appointments":
+
+    appointments = db.query(Appointment).filter(
+        Appointment.phone == phone
+    ).all()
+
+    if not appointments:
+
+        reply = "You have no appointments"
+
+    else:
+
+        reply = "Your Appointments:\n\n"
+
+        for a in appointments:
+
+            reply += (
+                f"ID: {a.id}\n"
+                f"Service: {a.service}\n"
+                f"Date: {a.date}\n"
+                f"Time: {a.time}\n\n"
+            )
+
+elif user_message.startswith("available slots"):
+
+    parts = user_message.split()
+
+    if len(parts) != 3:
+
+        reply = "Use: available slots 2026-06-20"
+
+    else:
+
+        selected_date = parts[2]
+
+        appointments = db.query(Appointment).filter(
+            Appointment.date == selected_date
+        ).all()
+
+        booked_slots = [a.time for a in appointments]
+
+        free_slots = []
+
+        for slot in AVAILABLE_SLOTS:
+
+            if slot not in booked_slots:
+                free_slots.append(slot)
+
+        reply = (
+            f"Available Slots ({selected_date})\n\n"
+            + "\n".join(free_slots)
+        )
+
+elif user_message.startswith("cancel"):
+
+    parts = user_message.split()
+
+    if len(parts) != 2:
+
+        reply = "Use: cancel 1"
+
+    else:
+
+        try:
+
+            appointment_id = int(parts[1])
+
+            appointment = db.query(Appointment).filter(
+                Appointment.id == appointment_id
+            ).first()
+
+            if not appointment:
+
+                reply = "Appointment not found"
+
+            else:
+
+                db.delete(appointment)
+                db.commit()
+
+                reply = f"Appointment {appointment_id} cancelled"
+
+        except:
+
+            reply = "Invalid appointment ID"
             elif user_message == "show appointments":
 
                 appointments = db.query(Appointment).all()
@@ -182,17 +267,19 @@ async def receive_webhook(request: Request):
             else:
 
                 reply = (
-                    "💈 Salon Assistant\n\n"
-                    "Commands:\n"
-                    "• timing\n"
-                    "• haircut\n"
-                    "• beard\n"
-                    "• facial\n"
-                    "• show appointments\n\n"
-                    "Booking:\n"
-                    "book haircut abhishek "
-                    "9876543210 2026-06-20 15:00"
-                )
+    "💈 Salon Assistant\n\n"
+    "Commands:\n\n"
+    "timing\n"
+    "haircut\n"
+    "beard\n"
+    "facial\n"
+    "my appointments\n"
+    "show appointments\n"
+    "available slots YYYY-MM-DD\n"
+    "cancel ID\n\n"
+    "Booking:\n"
+    "book haircut abhishek 9876543210 2026-06-20 15:00"
+)
 
             send_text_message(phone, reply)
 
