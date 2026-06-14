@@ -1,4 +1,3 @@
-
 import requests
 import os
 from dotenv import load_dotenv
@@ -7,12 +6,14 @@ load_dotenv()
 
 TOKEN = os.getenv("WHATSAPP_TOKEN")
 PHONE_NUMBER_ID = os.getenv("PHONE_NUMBER_ID")
+
 print("TOKEN EXISTS:", TOKEN is not None)
-print("TOKEN START:", TOKEN[:15] if TOKEN else "NONE")
-print("TOKEN END:", TOKEN[-15:] if TOKEN else "NONE")
+
+if TOKEN:
+    print("TOKEN START:", TOKEN[:15])
+    print("TOKEN END:", TOKEN[-15:])
+
 print("PHONE_NUMBER_ID:", PHONE_NUMBER_ID)
-
-
 
 
 def send_text_message(phone, message):
@@ -33,6 +34,9 @@ def send_text_message(phone, message):
         }
     }
 
+    print("\n===== SENDING WHATSAPP =====")
+    print(payload)
+
     try:
 
         response = requests.post(
@@ -41,6 +45,12 @@ def send_text_message(phone, message):
             json=payload,
             timeout=30
         )
+
+        print("\n===== STATUS CODE =====")
+        print(response.status_code)
+
+        print("\n===== RESPONSE =====")
+        print(response.text)
 
         response.raise_for_status()
 
@@ -52,7 +62,7 @@ def send_text_message(phone, message):
 
         try:
             print("Response:", response.text)
-        except:
+        except Exception:
             pass
 
         return {
