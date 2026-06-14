@@ -109,89 +109,91 @@ async def receive_webhook(request: Request):
 
            elif user_message == "my appointments":
 
-    appointments = db.query(Appointment).filter(
-        Appointment.phone == phone
-    ).all()
+                elif user_message == "my appointments":
 
-    if not appointments:
+                appointments = db.query(Appointment).filter(
+                    Appointment.phone == phone
+                ).all()
 
-        reply = "You have no appointments"
+                if not appointments:
 
-    else:
+                    reply = "You have no appointments"
 
-        reply = "Your Appointments:\n\n"
+                else:
 
-        for a in appointments:
+                    reply = "Your Appointments:\n\n"
 
-            reply += (
-                f"ID: {a.id}\n"
-                f"Service: {a.service}\n"
-                f"Date: {a.date}\n"
-                f"Time: {a.time}\n\n"
-            )
+                    for a in appointments:
 
-elif user_message.startswith("available slots"):
+                        reply += (
+                            f"ID: {a.id}\n"
+                            f"Service: {a.service}\n"
+                            f"Date: {a.date}\n"
+                            f"Time: {a.time}\n\n"
+                        )
 
-    parts = user_message.split()
+            elif user_message.startswith("available slots"):
 
-    if len(parts) != 3:
+                parts = user_message.split()
 
-        reply = "Use: available slots 2026-06-20"
+                if len(parts) != 3:
 
-    else:
+                    reply = "Use: available slots 2026-06-20"
 
-        selected_date = parts[2]
+                else:
 
-        appointments = db.query(Appointment).filter(
-            Appointment.date == selected_date
-        ).all()
+                    selected_date = parts[2]
 
-        booked_slots = [a.time for a in appointments]
+                    appointments = db.query(Appointment).filter(
+                        Appointment.date == selected_date
+                    ).all()
 
-        free_slots = []
+                    booked_slots = [a.time for a in appointments]
 
-        for slot in AVAILABLE_SLOTS:
+                    free_slots = []
 
-            if slot not in booked_slots:
-                free_slots.append(slot)
+                    for slot in AVAILABLE_SLOTS:
 
-        reply = (
-            f"Available Slots ({selected_date})\n\n"
-            + "\n".join(free_slots)
-        )
+                        if slot not in booked_slots:
+                            free_slots.append(slot)
 
-elif user_message.startswith("cancel"):
+                    reply = (
+                        f"Available Slots ({selected_date})\n\n"
+                        + "\n".join(free_slots)
+                    )
 
-    parts = user_message.split()
+            elif user_message.startswith("cancel"):
 
-    if len(parts) != 2:
+                parts = user_message.split()
 
-        reply = "Use: cancel 1"
+                if len(parts) != 2:
 
-    else:
+                    reply = "Use: cancel 1"
 
-        try:
+                else:
 
-            appointment_id = int(parts[1])
+                    try:
 
-            appointment = db.query(Appointment).filter(
-                Appointment.id == appointment_id
-            ).first()
+                        appointment_id = int(parts[1])
 
-            if not appointment:
+                        appointment = db.query(Appointment).filter(
+                            Appointment.id == appointment_id
+                        ).first()
 
-                reply = "Appointment not found"
+                        if not appointment:
 
-            else:
+                            reply = "Appointment not found"
 
-                db.delete(appointment)
-                db.commit()
+                        else:
 
-                reply = f"Appointment {appointment_id} cancelled"
+                            db.delete(appointment)
+                            db.commit()
 
-        except:
+                            reply = f"Appointment {appointment_id} cancelled"
 
-            reply = "Invalid appointment ID"
+                    except:
+
+                        reply = "Invalid appointment ID"
             elif user_message == "show appointments":
 
                 appointments = db.query(Appointment).all()
