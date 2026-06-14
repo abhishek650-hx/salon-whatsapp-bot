@@ -5,8 +5,8 @@ from datetime import date
 import os
 import json
 
-from database import SessionLocal
-from models import Appointment
+from database import SessionLocal, engine
+from models import Appointment, Base
 from whatsapp import send_text_message
 
 load_dotenv()
@@ -14,6 +14,9 @@ load_dotenv()
 VERIFY_TOKEN = os.getenv("VERIFY_TOKEN")
 
 app = FastAPI()
+# Create tables automatically on Render startup
+Base.metadata.create_all(bind=engine)
+print("Database initialized successfully")
 
 AVAILABLE_SLOTS = [
     "10:00",
